@@ -25,6 +25,7 @@ from app.db.session import SessionLocal
 from app.models.document import Document
 from app.models.search_index import SearchIndex
 from app.core.text import clean_text_for_search
+from app.models.document import IndexingStatus
 
 
 
@@ -40,7 +41,7 @@ def process_pending_documents(db: Session) -> None:
     Args:
         db: SQLAlchemy session
     """
-    stmt = select(Document).where(Document.indexing_status == "pending")
+    stmt = select(Document).where(Document.indexing_status == IndexingStatus.pending)
     pending_docs = db.execute(stmt).scalars().all()
 
     if not pending_docs:
@@ -76,14 +77,14 @@ def process_pending_documents(db: Session) -> None:
                     last_indexed_at=current_time
                 ))
 
-            doc.indexing_status = "indexed"
+            doc.indexing_status = IndexingStatus.indexed
             doc.updated_at = current_time
 
             print(f"[Indexer] Successfully indexed document {doc.id}")
 
         except Exception as e:
             print(f"[Indexer] Failed to process document {doc.id}: {e}")
-            doc.indexing_status = "failed"
+            doc.indexing_status = IndexingStatus.failed
 
     try:
         db.commit()

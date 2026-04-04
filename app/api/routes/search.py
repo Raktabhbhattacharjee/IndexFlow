@@ -1,17 +1,18 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends,Query
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.core.text import clean_text_for_search
 from app.models.search_index import SearchIndex
 from app.models.document import Document
 from sqlalchemy import select
-
+from app.schemas.document import DocumentCreate, DocumentResponse
+from typing import List
 
 router = APIRouter(prefix="/documents")
 
 
-@router.get("/search")
-def search_documents(q: str, db: Session = Depends(get_db)):
+@router.get("/search",response_model=List[DocumentResponse])
+def search_documents(q: str =Query(min_length=1), db: Session = Depends(get_db)):
     """
     Search for documents matching the given query.
 
