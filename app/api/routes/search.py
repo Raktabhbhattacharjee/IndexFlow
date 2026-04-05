@@ -7,6 +7,7 @@ from app.models.document import Document
 from sqlalchemy import select
 from app.schemas.document import DocumentCreate, DocumentResponse
 from typing import List
+from app.core.ranking import rank_documents
 
 router = APIRouter(prefix="/documents")
 
@@ -40,9 +41,12 @@ def search_documents(q: str =Query(min_length=1), db: Session = Depends(get_db))
     if not matched_indexes:
         return []
 
+    searchable_texts = {index.document_id: index.searchable_text for index in matched_indexes}
     matched_doc_ids = [index.document_id for index in matched_indexes]
-
+    
     fetch_query = select(Document).where(Document.id.in_(matched_doc_ids))
     matched_documents = db.execute(fetch_query).scalars().all()
 
-    return matched_documents
+    return rank_documents(matched_documents, searchable_texts, cleaned_query)
+
+    
