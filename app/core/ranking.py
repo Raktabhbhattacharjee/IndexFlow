@@ -1,12 +1,10 @@
-def rank_documents(documents, searchable_texts: dict, query: str) -> list:
-    # for each document, count how many times query appears in its searchable_text
-    # sort by that count highest first
-    # return sorted list
+def rank_documents(documents, searchable_texts: dict, tokens:list[str]) -> list:
+   # for each document, sum how many times each token appears in its searchable_text
     
     scored = []
     for doc in documents:
         text = searchable_texts.get(doc.id, "")
-        score = text.count(query)
+        score = sum(text.count(token) for token in tokens)
         scored.append((score, doc))
     
     # sort by score highest first

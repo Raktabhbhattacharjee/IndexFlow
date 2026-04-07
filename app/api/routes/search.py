@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends,Query
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.core.text import clean_text_for_search
+from app.core.text import clean_text_for_search,tokenize
 from app.models.search_index import SearchIndex
 from app.models.document import Document
-from sqlalchemy import select
+from sqlalchemy import select,or_
 from app.schemas.document import DocumentCreate, DocumentResponse
 from typing import List
 from app.core.ranking import rank_documents
@@ -14,28 +14,21 @@ router = APIRouter(prefix="/documents")
 
 @router.get("/search",response_model=List[DocumentResponse])
 def search_documents(q: str =Query(min_length=1), db: Session = Depends(get_db)):
-    """
-    Search for documents matching the given query.
+    #     """
+    #     """
+    # Search for documents matching the given query.
 
-    Steps:
-        1. Clean the query using Phase 1 indexing logic
-        2. Find matching rows in search_index using keyword matching
-        3. Extract document ids from matches
-        4. Fetch and return the full documents
+    # Steps:
+    #     1. Tokenize the raw query into individual keywords
+    #     2. Build one LIKE condition per token, combined with OR
+    #     3. Find matching rows in search_index
+    #     4. Fetch full documents by matched ids
+    #     5. Rank results by total term frequency across all tokens"""
+        
 
-    Args:
-        q: Raw search query from the client
-        db: Database session
-
-    Note:
-        This endpoint queries search_index only — never documents directly.
-        That is a core system invariant.
-    """
-    cleaned_query = clean_text_for_search(q, "")
-
-    search_query = select(SearchIndex).where(
-        SearchIndex.searchable_text.contains(cleaned_query)
-    )
+    tokens = tokenize(q)
+    conditions = [SearchIndex.searchable_text.contains(token) for token in tokens]
+    search_query = select(SearchIndex).where(or_(*conditions))
     matched_indexes = db.execute(search_query).scalars().all()
 
     if not matched_indexes:
@@ -47,6 +40,6 @@ def search_documents(q: str =Query(min_length=1), db: Session = Depends(get_db))
     fetch_query = select(Document).where(Document.id.in_(matched_doc_ids))
     matched_documents = db.execute(fetch_query).scalars().all()
 
-    return rank_documents(matched_documents, searchable_texts, cleaned_query)
+    return rank_documents(matched_documents, searchable_texts, tokens)
 
     

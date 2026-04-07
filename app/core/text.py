@@ -16,3 +16,15 @@ def clean_text_for_search(title: str, content: str) -> str:
     cleaned = combined.translate(PUNCTUATION_TABLE)
     cleaned = ' '.join(cleaned.split())
     return cleaned
+
+def tokenize(query: str) -> list[str]:
+    if not query:
+        return []
+
+    # reuse existing cleaning logic
+    cleaned = clean_text_for_search(query, "")
+
+    # split into tokens
+    tokens = cleaned.split()
+
+    return tokens
